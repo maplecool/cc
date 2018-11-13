@@ -17,7 +17,7 @@ namespace cAlgo.Indicators
         [Output("Đường độ lệch chuẩn dưới", Color = Colors.Gray, PlotType = PlotType.Points)]
         public IndicatorDataSeries SD3Neg { get; set; }
 
-        [Output("Khối lượng giá trung bình (vWAP)", LineStyle = LineStyle.Solid, Thickness = 2, Color = Colors.Red)]
+        [Output("Khối lượng giá trung bình (vWAP)", LineStyle = LineStyle.Solid, Thickness = 2, Color = Colors.LawnGreen)]
         public IndicatorDataSeries VWAP { get; set; }
 
         [Parameter("Hiện đường độ lệch chuẩn (Standard Deviation)", DefaultValue = true)]
@@ -112,7 +112,7 @@ namespace cAlgo.Indicators
             foreach (var hpos in History)
             {
                 gain += hpos.NetProfit;
-                if (hpos.EntryTime.Date == Time.Date)
+                if (hpos.ClosingTime.DayOfYear == Time.DayOfYear)
                 {
                     gainToday += hpos.NetProfit;
                 }
@@ -244,7 +244,6 @@ namespace cAlgo.Indicators
                     {
                         ChartObjects.DrawText("show Text", "VWAP: " + Math.Round(VWAP[index], 5), corner_position, Colors.White);
                     }
-                    ChartObjects.DrawHorizontalLine("show Line", Math.Round(VWAP[index], 5), Colors.White, 1, LineStyle.Dots);
 
                     if (ShowDeviation)
                     {

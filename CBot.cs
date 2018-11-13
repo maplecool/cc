@@ -10,7 +10,6 @@ namespace cAlgo
     [Robot(TimeZone = TimeZones.UTC, AccessRights = AccessRights.None)]
     public class HedgingandScalpingcBot : Robot
     {
-
         [Parameter("Khối lượng giao dịch", DefaultValue = 1000, MinValue = 1000, Step = 1000)]
         public int Volume { get; set; }
 
@@ -20,27 +19,41 @@ namespace cAlgo
         [Parameter("Phần trăm chịu lỗ tối đa", DefaultValue = 5)]
         public double MaxDropDown { get; set; }
 
-        [Parameter("Số pips tối đa chốt lời", DefaultValue = 2)]
-        public double MaxTakeProfitPips { get; set; }
+        [Parameter("Số pips tối đa chịu lỗ", DefaultValue = 20)]
+        public double MaxDropDownInPips { get; set; }
 
-        [Parameter("RSI Signal Periods", DefaultValue = 9, MinValue = 1)]
+        [Parameter("RSI Signal Periods", DefaultValue = 14, MinValue = 1)]
         public int RSIPeriods { get; set; }
+
+        [Parameter("% K Periods", DefaultValue = 9)]
+        public int KPeriods { get; set; }
+
+        [Parameter("% K Slowing", DefaultValue = 3)]
+        public int KSlowing { get; set; }
+
+        [Parameter("% D Periods", DefaultValue = 9)]
+        public int DPeriods { get; set; }
+
+        [Parameter("Moving Average Type", DefaultValue = MovingAverageType.Simple)]
+        public MovingAverageType MAType { get; set; }
 
         [Parameter("TrendLines Periods", DefaultValue = 30, MinValue = 14)]
         public int TrendLinesPeriods { get; set; }
 
         private RelativeStrengthIndex _RSI;
-        public int TakeProfit = 0;
-        public int StopLoss = 0;
+        private StochasticOscillator _STOCH;
+
+        // Fomula
         public double FirstResistancePoint = 0;
         public double SecondResistancePoint = 0;
         public double FirstSupportPoint = 0;
         public double SecondSupportPoint = 0;
+        public double vWapPoint = 0;
 
         protected override void OnStart()
         {
             _RSI = Indicators.RelativeStrengthIndex(MarketSeries.Close, RSIPeriods);
-
+            _STOCH = Indicators.StochasticOscillator(KPeriods, KSlowing, DPeriods, MAType);
             InitializePivotPoints();
         }
 
@@ -64,7 +77,7 @@ namespace cAlgo
             }
         }
 
-        private void ModifyStopLosses()
+        public void ModifyStopLosses()
         {
             // Tính cắt lỗ của lệnh khi đặt 
             foreach (var openedPosition in Positions)
@@ -102,7 +115,7 @@ namespace cAlgo
             }
         }
 
-        private void ModifyTakeProfits()
+        public void ModifyTakeProfits()
         {
             // Tính chốt lời của lệnh khi đặt 
             foreach (var openedPosition in Positions)
@@ -132,12 +145,29 @@ namespace cAlgo
             }
         }
 
-        private void MakeNewPosition()
+        public void MakeNewPosition()
         {
             // Đặt lệnh mới
+            double RSI_OverBought = 70.0;
+            double RSI_OverSold = 30.0;
+            double STOCH_OverBought = 80.0;
+            double STOCH_OverSold = 20.0;
+            double GoodVolume = (Account.Balance * MaxDropDown / 100) / (MaxDropDownInPips * (double)((int)(Symbol.PipValue * 10000000)) / 100);
+
+            if (Positions.Count < MaxOrders)
+            {
+                if (_RSI.Result.LastValue > RSI_OverBought && _STOCH.PercentK.LastValue > STOCH_OverBought && (Symbol.Bid < FirstResistancePoint || Symbol.Bid < SecondResistancePoint))
+                {
+                    ExecuteMarketOrder(TradeType.Sell, Symbol, GoodVolume);
+                }
+                else if (_RSI.Result.LastValue < RSI_OverSold && _STOCH.PercentK.LastValue < STOCH_OverSold && (Symbol.Ask > FirstSupportPoint || Symbol.Bid < SecondSupportPoint))
+                {
+                    ExecuteMarketOrder(TradeType.Buy, Symbol, GoodVolume);
+                }
+            }
         }
 
-        private void HedgePositions()
+        public void HedgePositions()
         {
             double NegativeTradeBuyLots = 0;
             double NegativeTradeSellLots = 0;
@@ -166,12 +196,12 @@ namespace cAlgo
                 {
                     if (NegativeTradeSellLots == 0)
                     {
-                        ExecuteMarketOrder(TradeType.Sell, Symbol, (long)(NegativeTradeBuyLots * 100000), "Bảo hiểm rủi ro", StopLoss, TakeProfit);
+                        ExecuteMarketOrder(TradeType.Sell, Symbol, (long)(NegativeTradeBuyLots * 100000), "Bảo hiểm rủi ro");
                         return;
                     }
                     else if (NegativeTradeSellLots > 0)
                     {
-                        ExecuteMarketOrder(TradeType.Sell, Symbol, (long)((NegativeTradeBuyLots - NegativeTradeSellLots) * 100000), "Bảo hiểm rủi ro", StopLoss, TakeProfit);
+                        ExecuteMarketOrder(TradeType.Sell, Symbol, (long)((NegativeTradeBuyLots - NegativeTradeSellLots) * 100000), "Bảo hiểm rủi ro");
                         return;
                     }
                     else
@@ -184,12 +214,12 @@ namespace cAlgo
                 {
                     if (NegativeTradeBuyLots == 0)
                     {
-                        ExecuteMarketOrder(TradeType.Buy, Symbol, (long)(NegativeTradeSellLots * 100000), "Bảo hiểm rủi ro", StopLoss, TakeProfit);
+                        ExecuteMarketOrder(TradeType.Buy, Symbol, (long)(NegativeTradeSellLots * 100000), "Bảo hiểm rủi ro");
                         return;
                     }
                     if (NegativeTradeBuyLots > 0)
                     {
-                        ExecuteMarketOrder(TradeType.Buy, Symbol, (long)((NegativeTradeSellLots - NegativeTradeBuyLots) * 100000), "Bảo hiểm rủi ro", StopLoss, TakeProfit);
+                        ExecuteMarketOrder(TradeType.Buy, Symbol, (long)((NegativeTradeSellLots - NegativeTradeBuyLots) * 100000), "Bảo hiểm rủi ro");
                         return;
                     }
                     else
@@ -201,7 +231,7 @@ namespace cAlgo
             }
         }
 
-        private void InitializePivotPoints()
+        public void InitializePivotPoints()
         {
             int count = MarketSeries.Close.Count;
 
@@ -215,10 +245,9 @@ namespace cAlgo
             SecondResistancePoint = MarketSeries.High[maxIndex2];
             FirstSupportPoint = MarketSeries.Low[minIndex1];
             SecondSupportPoint = MarketSeries.Low[minIndex2];
-            Print("RS: " + FirstResistancePoint + " " + SecondResistancePoint + " SP: " + FirstSupportPoint + " " + SecondSupportPoint);
         }
 
-        private int FindNextLocalExtremum(DataSeries series, int maxIndex, bool findMax)
+        public int FindNextLocalExtremum(DataSeries series, int maxIndex, bool findMax)
         {
             for (int index = maxIndex; index >= 0; index--)
             {
@@ -230,7 +259,7 @@ namespace cAlgo
             return 0;
         }
 
-        private bool IsLocalExtremum(DataSeries series, int index, bool findMax)
+        public bool IsLocalExtremum(DataSeries series, int index, bool findMax)
         {
             int end = Math.Min(index + TrendLinesPeriods, series.Count - 1);
             int start = Math.Max(index - TrendLinesPeriods, 0);

@@ -19,6 +19,9 @@ namespace cAlgo
         [Parameter("Phần trăm chịu lỗ tối đa", DefaultValue = 5)]
         public double MaxDropDown { get; set; }
 
+        [Parameter("Phần trăm chịu lỗ bảo hiểm rủi ro", DefaultValue = 5)]
+        public double MaxHedgeZone { get; set; }
+
         [Parameter("Số pips tối đa chịu lỗ", DefaultValue = 20)]
         public double MaxDropDownInPips { get; set; }
 
@@ -49,6 +52,7 @@ namespace cAlgo
         public double FirstSupportPoint = 0;
         public double SecondSupportPoint = 0;
         public double vWapPoint = 0;
+        public bool Hedged = false;
 
         protected override void OnStart()
         {
@@ -62,7 +66,9 @@ namespace cAlgo
             InitializePivotPoints();
             ModifyStopLosses();
             ModifyTakeProfits();
-            HedgePositions();
+            ExecuteNewMarketOrder();
+            if (!Hedged && Positions.Find("Bảo hiểm rủi ro") == null)
+                HedgePositions();
         }
 
         protected override void OnError(Error CodeOfError)
@@ -84,6 +90,9 @@ namespace cAlgo
             {
                 if (openedPosition.TradeType == TradeType.Buy)
                 {
+                    if (openedPosition.Label == "Lệnh ngắn hạn")
+                    {
+                    }
                     if (openedPosition.StopLoss == null || openedPosition.TakeProfit == null)
                     {
                         ModifyPosition(openedPosition, FirstSupportPoint, FirstResistancePoint);
@@ -92,7 +101,7 @@ namespace cAlgo
                     {
                         ModifyPosition(openedPosition, FirstSupportPoint, openedPosition.TakeProfit);
                     }
-                    else if (openedPosition.StopLoss < FirstSupportPoint && openedPosition.StopLoss > SecondSupportPoint)
+                    else if (openedPosition.StopLoss <= FirstSupportPoint && openedPosition.StopLoss > SecondSupportPoint)
                     {
                         ModifyPosition(openedPosition, SecondSupportPoint, openedPosition.TakeProfit);
                     }
@@ -107,7 +116,7 @@ namespace cAlgo
                     {
                         ModifyPosition(openedPosition, FirstResistancePoint, openedPosition.TakeProfit);
                     }
-                    else if (openedPosition.StopLoss > FirstResistancePoint && openedPosition.StopLoss < SecondResistancePoint)
+                    else if (openedPosition.StopLoss >= FirstResistancePoint && openedPosition.StopLoss < SecondResistancePoint)
                     {
                         ModifyPosition(openedPosition, SecondResistancePoint, openedPosition.TakeProfit);
                     }
@@ -126,7 +135,7 @@ namespace cAlgo
                     {
                         ModifyPosition(openedPosition, openedPosition.StopLoss, FirstResistancePoint);
                     }
-                    else if (openedPosition.TakeProfit > FirstResistancePoint && openedPosition.TakeProfit <= SecondResistancePoint)
+                    else if (openedPosition.TakeProfit >= FirstResistancePoint && openedPosition.TakeProfit < SecondResistancePoint)
                     {
                         ModifyPosition(openedPosition, openedPosition.StopLoss, SecondResistancePoint);
                     }
@@ -137,7 +146,7 @@ namespace cAlgo
                     {
                         ModifyPosition(openedPosition, openedPosition.StopLoss, FirstSupportPoint);
                     }
-                    else if (openedPosition.TakeProfit < FirstSupportPoint && openedPosition.TakeProfit > SecondSupportPoint)
+                    else if (openedPosition.TakeProfit <= FirstSupportPoint && openedPosition.TakeProfit > SecondSupportPoint)
                     {
                         ModifyPosition(openedPosition, openedPosition.StopLoss, SecondSupportPoint);
                     }
@@ -145,24 +154,38 @@ namespace cAlgo
             }
         }
 
-        public void MakeNewPosition()
+        public void ExecuteNewMarketOrder()
         {
             // Đặt lệnh mới
             double RSI_OverBought = 70.0;
             double RSI_OverSold = 30.0;
             double STOCH_OverBought = 80.0;
             double STOCH_OverSold = 20.0;
-            double GoodVolume = (Account.Balance * MaxDropDown / 100) / (MaxDropDownInPips * (double)((int)(Symbol.PipValue * 10000000)) / 100);
+            double GoodVolume = Symbol.QuantityToVolumeInUnits(Math.Round((Account.Balance * MaxDropDown / 100) / (MaxDropDownInPips * (double)((int)(Symbol.PipValue * 10000000)) / 100), 2));
 
             if (Positions.Count < MaxOrders)
             {
-                if (_RSI.Result.LastValue > RSI_OverBought && _STOCH.PercentK.LastValue > STOCH_OverBought && (Symbol.Bid < FirstResistancePoint || Symbol.Bid < SecondResistancePoint))
+                if (TimeFrame.Hour == MarketSeries.TimeFrame || TimeFrame.Hour4 == MarketSeries.TimeFrame)
                 {
-                    ExecuteMarketOrder(TradeType.Sell, Symbol, GoodVolume);
+                    if (_RSI.Result.LastValue > RSI_OverBought && _STOCH.PercentK.LastValue > STOCH_OverBought && (Symbol.Bid < FirstResistancePoint || Symbol.Bid < SecondResistancePoint))
+                    {
+                        ExecuteMarketOrder(TradeType.Sell, Symbol, GoodVolume / (TimeFrame.Hour == MarketSeries.TimeFrame ? 10 : 40), "Lệnh dài hạn");
+                    }
+                    else if (_RSI.Result.LastValue < RSI_OverSold && _STOCH.PercentK.LastValue < STOCH_OverSold && (Symbol.Ask > FirstSupportPoint || Symbol.Bid < SecondSupportPoint))
+                    {
+                        ExecuteMarketOrder(TradeType.Buy, Symbol, GoodVolume / (TimeFrame.Hour == MarketSeries.TimeFrame ? 1 : 4), "Lệnh dài hạn");
+                    }
                 }
-                else if (_RSI.Result.LastValue < RSI_OverSold && _STOCH.PercentK.LastValue < STOCH_OverSold && (Symbol.Ask > FirstSupportPoint || Symbol.Bid < SecondSupportPoint))
+                else if (MarketSeries.TimeFrame < TimeFrame.Minute45)
                 {
-                    ExecuteMarketOrder(TradeType.Buy, Symbol, GoodVolume);
+                    if (_RSI.Result.LastValue > 60.0 && _STOCH.PercentK.LastValue > 70.0 && (Symbol.Bid < FirstResistancePoint || Symbol.Bid < SecondResistancePoint))
+                    {
+                        ExecuteMarketOrder(TradeType.Sell, Symbol, GoodVolume < 1000 ? 1000 : GoodVolume, "Lệnh ngắn hạn");
+                    }
+                    else if (_RSI.Result.LastValue < 40.0 && _STOCH.PercentK.LastValue < 50.0 && (Symbol.Ask > FirstSupportPoint || Symbol.Ask > SecondSupportPoint))
+                    {
+                        ExecuteMarketOrder(TradeType.Buy, Symbol, GoodVolume < 1000 ? 1000 : GoodVolume, "Lệnh ngắn hạn");
+                    }
                 }
             }
         }
@@ -177,7 +200,6 @@ namespace cAlgo
             {
                 return;
             }
-
             foreach (var position in Positions)
             {
                 if (position.TradeType == TradeType.Buy)
@@ -190,24 +212,23 @@ namespace cAlgo
                 }
                 NegativeNetProfits += position.NetProfit;
             }
-            if (NegativeNetProfits * 100 / Account.Balance < -MaxDropDown)
+            if (NegativeNetProfits * 100 / Account.Balance < -MaxHedgeZone)
             {
                 if (NegativeTradeBuyLots > NegativeTradeSellLots)
                 {
                     if (NegativeTradeSellLots == 0)
                     {
                         ExecuteMarketOrder(TradeType.Sell, Symbol, (long)(NegativeTradeBuyLots * 100000), "Bảo hiểm rủi ro");
-                        return;
+                        Hedged = true;
                     }
                     else if (NegativeTradeSellLots > 0)
                     {
                         ExecuteMarketOrder(TradeType.Sell, Symbol, (long)((NegativeTradeBuyLots - NegativeTradeSellLots) * 100000), "Bảo hiểm rủi ro");
-                        return;
+                        Hedged = true;
                     }
                     else
                     {
                         Print("Lỗi!!! Negative Trade Buy bị ngáo rồi!");
-                        return;
                     }
                 }
                 if (NegativeTradeBuyLots < NegativeTradeSellLots)
@@ -215,17 +236,16 @@ namespace cAlgo
                     if (NegativeTradeBuyLots == 0)
                     {
                         ExecuteMarketOrder(TradeType.Buy, Symbol, (long)(NegativeTradeSellLots * 100000), "Bảo hiểm rủi ro");
-                        return;
+                        Hedged = true;
                     }
                     if (NegativeTradeBuyLots > 0)
                     {
                         ExecuteMarketOrder(TradeType.Buy, Symbol, (long)((NegativeTradeSellLots - NegativeTradeBuyLots) * 100000), "Bảo hiểm rủi ro");
-                        return;
+                        Hedged = true;
                     }
                     else
                     {
                         Print("Lỗi!!! Negative Trade Sell bị ngáo rồi!");
-                        return;
                     }
                 }
             }

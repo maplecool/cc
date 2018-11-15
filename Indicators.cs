@@ -11,6 +11,12 @@ namespace cAlgo.Indicators
         [Parameter("Offset Reset time", DefaultValue = 0)]
         public int TimeOffset { get; set; }
 
+        [Parameter("Phần trăm chịu lỗ tối đa", DefaultValue = 5)]
+        public int stopLossRiskPercent { get; set; }
+
+        [Parameter("Số pips tối đa chịu lỗ", DefaultValue = 20)]
+        public int stopLossInPips { get; set; }
+
         [Output("Đường độ lệch chuẩn trên", Color = Colors.Gray, PlotType = PlotType.Points)]
         public IndicatorDataSeries SD3Pos { get; set; }
 
@@ -56,12 +62,6 @@ namespace cAlgo.Indicators
         [Parameter("TrendLines Periods", DefaultValue = 30, MinValue = 14)]
         public int TrendLinesPeriods { get; set; }
 
-        [Parameter("Phần trăm chịu lỗ tối đa", DefaultValue = 5)]
-        public int stopLossRiskPercent { get; set; }
-
-        [Parameter("Số pips tối đa chịu lỗ", DefaultValue = 20)]
-        public int stopLossInPips { get; set; }
-
         // private int end_bar = 0;
         private int start_bar = 0;
         private int oldCurrentDay = 0;
@@ -70,7 +70,7 @@ namespace cAlgo.Indicators
         public int CurrentDay = 0;
 
         // Indicators:
-        private MacdHistogram _MACD;
+        private MacdCrossOver _MACD;
         private RelativeStrengthIndex _RSI;
         private StochasticOscillator _STOCH;
 
@@ -80,7 +80,7 @@ namespace cAlgo.Indicators
 
         protected override void Initialize()
         {
-            _MACD = Indicators.MacdHistogram(MarketSeries.Close, LongCycle, ShortCycle, MACDPeriods);
+            _MACD = Indicators.MacdCrossOver(MarketSeries.Close, LongCycle, ShortCycle, MACDPeriods);
             _RSI = Indicators.RelativeStrengthIndex(MarketSeries.Close, RSIPeriods);
             _STOCH = Indicators.StochasticOscillator(KPeriods, KSlowing, DPeriods, MAType);
             InitializeTrendlines();
@@ -151,18 +151,18 @@ namespace cAlgo.Indicators
         {
             ChartObjects.RemoveObject("Index MACD");
 
-            if (_MACD.Histogram[index] != 0)
+            if (_MACD.Histogram[index] != 0 || _MACD.MACD[index] > 0 || _MACD.Signal[index] > 0)
             {
-                if (_MACD.Histogram[index] > 0)
+                if (_MACD.Histogram[index] > 0 || _MACD.MACD[index] > 0 || _MACD.Signal[index] > 0)
                 {
-                    ChartObjects.DrawText("MACD", "\nMACD Histogram:", corner_position, Colors.White);
-                    ChartObjects.DrawText("Index MACD", "\n\t\t " + UpArrow + " " + Math.Round(_MACD.Histogram.LastValue, 3) + ", " + Math.Round(_MACD.Signal.LastValue, 3), corner_position, Colors.MediumSpringGreen);
+                    ChartObjects.DrawText("MACD", "\nMACD Crossover:", corner_position, Colors.White);
+                    ChartObjects.DrawText("Index MACD", "\n\t\t " + UpArrow + " " + Math.Round(_MACD.MACD.LastValue, 3) + ", " + Math.Round(_MACD.Histogram.LastValue, 3) + ", " + Math.Round(_MACD.Signal.LastValue, 3), corner_position, Colors.MediumSpringGreen);
 
                 }
-                else if (_MACD.Histogram[index] < 0)
+                else if (_MACD.Histogram[index] < 0 || _MACD.MACD[index] > 0 || _MACD.Signal[index] > 0)
                 {
-                    ChartObjects.DrawText("MACD", "\nMACD Histogram:", corner_position, Colors.White);
-                    ChartObjects.DrawText("Index MACD", "\n\t\t " + DownArrow + " " + Math.Round(_MACD.Histogram.LastValue, 3) + ", " + Math.Round(_MACD.Signal.LastValue, 3), corner_position, Colors.OrangeRed);
+                    ChartObjects.DrawText("MACD", "\nMACD Crossover:", corner_position, Colors.White);
+                    ChartObjects.DrawText("Index MACD", "\n\t\t " + DownArrow + " " + Math.Round(_MACD.MACD.LastValue, 3) + ", " + Math.Round(_MACD.Histogram.LastValue, 3) + ", " + Math.Round(_MACD.Signal.LastValue, 3), corner_position, Colors.OrangeRed);
                 }
             }
 
@@ -183,10 +183,10 @@ namespace cAlgo.Indicators
 
             ChartObjects.RemoveObject("Index Stoch");
 
-            if (_STOCH.PercentK.LastValue != 0)
+            if (_STOCH.PercentK.LastValue != 0 || _STOCH.PercentD.LastValue != 0)
             {
                 ChartObjects.DrawText("Stoch", "\n\n\nStochastic Oscillator:", corner_position, Colors.White);
-                if (_STOCH.PercentK.IsRising() && _STOCH.PercentK.LastValue < 80)
+                if (_STOCH.PercentK.IsRising() && _STOCH.PercentK.LastValue < 80 && _STOCH.PercentD.LastValue < 70)
                 {
                     ChartObjects.DrawText("Index Stoch", "\n\n\n\t\t     " + UpArrow + " " + Math.Round(_STOCH.PercentD.LastValue) + ", " + Math.Round(_STOCH.PercentK.LastValue), corner_position, Colors.MediumSpringGreen);
                 }
@@ -195,7 +195,6 @@ namespace cAlgo.Indicators
                     ChartObjects.DrawText("Index Stoch", "\n\n\n\t\t     " + DownArrow + " " + Math.Round(_STOCH.PercentD.LastValue) + ", " + Math.Round(_STOCH.PercentK.LastValue), corner_position, Colors.OrangeRed);
                 }
             }
-
 
             ChartObjects.RemoveObject("Positions");
             ChartObjects.RemoveObject("Index Positions");
@@ -210,7 +209,7 @@ namespace cAlgo.Indicators
                 {
                     if (position.SymbolCode == Symbol.Code)
                     {
-                        lots += position.Quantity;
+                        lots -= position.Quantity;
                         netProfit += position.NetProfit;
                     }
                 }
@@ -275,18 +274,18 @@ namespace cAlgo.Indicators
 
                     if (corner != 0)
                     {
-                        ChartObjects.DrawText("VWAP", "VWAP:", corner_position, Colors.White);
+                        ChartObjects.DrawText("VWAP", "Volume Weighted Average Price:", corner_position, Colors.White);
                         if (Symbol.Bid < Math.Round(VWAP[index], 5) || Symbol.Ask < Math.Round(VWAP[index], 5))
                         {
-                            ChartObjects.DrawText("Index VWAP", "\t" + DownArrow + " " + Math.Round(VWAP[index], 5), corner_position, Colors.OrangeRed);
+                            ChartObjects.DrawText("Index VWAP", "\t\t\t          " + DownArrow + " " + Math.Round(VWAP[index], 5), corner_position, Colors.OrangeRed);
                         }
                         else if (Symbol.Ask > Math.Round(VWAP[index], 5) || Symbol.Bid > Math.Round(VWAP[index], 5))
                         {
-                            ChartObjects.DrawText("Index VWAP", "\t" + UpArrow + " " + Math.Round(VWAP[index], 5), corner_position, Colors.MediumSpringGreen);
+                            ChartObjects.DrawText("Index VWAP", "\t\t\t          " + UpArrow + " " + Math.Round(VWAP[index], 5), corner_position, Colors.MediumSpringGreen);
                         }
                         else
                         {
-                            ChartObjects.DrawText("Index VWAP", "\t " + Math.Round(VWAP[index], 5), corner_position, Colors.White);
+                            ChartObjects.DrawText("Index VWAP", "\t\t\t          " + Math.Round(VWAP[index], 5), corner_position, Colors.White);
                         }
                     }
 

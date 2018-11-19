@@ -176,7 +176,7 @@ namespace cAlgo
                         ExecuteMarketOrder(TradeType.Buy, Symbol, GoodVolume / (TimeFrame.Hour == MarketSeries.TimeFrame ? 1 : 4), "Lệnh dài hạn");
                     }
                 }
-                else if (MarketSeries.TimeFrame < TimeFrame.Minute45)
+                else if (MarketSeries.TimeFrame < TimeFrame.Hour)
                 {
                     if (_RSI.Result.LastValue > 60.0 && _STOCH.PercentK.LastValue > 70.0 && (Symbol.Bid < FirstResistancePoint || Symbol.Bid < SecondResistancePoint))
                     {

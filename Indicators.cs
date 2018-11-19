@@ -203,26 +203,54 @@ namespace cAlgo.Indicators
             {
                 double netProfit = 0;
                 double Percentage = 0;
+                double BuyQuantity = 0;
+                double SellQuantity = 0;
                 double lots = 0;
+                string type;
 
                 foreach (var position in Positions)
                 {
                     if (position.SymbolCode == Symbol.Code)
                     {
-                        lots -= position.Quantity;
+                        if (position.TradeType == TradeType.Buy)
+                        {
+                            BuyQuantity += position.Quantity;
+                        }
+                        else
+                        {
+                            SellQuantity += position.Quantity;
+                        }
                         netProfit += position.NetProfit;
                     }
+                }
+                if (BuyQuantity != SellQuantity)
+                {
+                    if (BuyQuantity > SellQuantity)
+                    {
+                        lots = BuyQuantity - SellQuantity;
+                        type = "BUYING";
+                    }
+                    else
+                    {
+                        lots = SellQuantity - BuyQuantity;
+                        type = "SELLING";
+                    }
+                }
+                else
+                {
+                    lots = BuyQuantity;
+                    type = "HEDGED";
                 }
                 Percentage = netProfit / Account.Balance;
                 if (Percentage > 0)
                 {
                     ChartObjects.DrawText("Positions", "\n\n\n\n" + Symbol.Code, corner_position, Colors.MediumSpringGreen);
-                    ChartObjects.DrawText("Index Positions", ":\n\n\n\n\t" + "  " + Math.Round(Percentage * 100, 4) + "% | " + lots + " lots", corner_position, Colors.MediumSpringGreen);
+                    ChartObjects.DrawText("Index Positions", ":\n\n\n\n\t" + "  " + Math.Round(Percentage * 100, 4) + "% | " + lots + " lots | " + type, corner_position, Colors.MediumSpringGreen);
                 }
                 else if (Percentage < 0)
                 {
                     ChartObjects.DrawText("Positions", "\n\n\n\n" + Symbol.Code, corner_position, Colors.OrangeRed);
-                    ChartObjects.DrawText("Index Positions", "\n\n\n\n\t" + "  " + Math.Round(Percentage * 100, 4) + "% | " + lots + " lots", corner_position, Colors.OrangeRed);
+                    ChartObjects.DrawText("Index Positions", "\n\n\n\n\t" + "  " + Math.Round(Percentage * 100, 4) + "% | " + lots + " lots | " + type, corner_position, Colors.OrangeRed);
                 }
             }
             else

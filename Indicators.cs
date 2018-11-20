@@ -412,6 +412,5 @@ namespace cAlgo.Indicators
             }
             return true;
         }
-
     }
 }

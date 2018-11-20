@@ -51,6 +51,10 @@ namespace cAlgo
         public double SecondResistancePoint = 0;
         public double FirstSupportPoint = 0;
         public double SecondSupportPoint = 0;
+        public double FirstTP = 0;
+        public double SecondTP = 0;
+        public double FirstSL = 0;
+        public double SecondSL = 0;
         public double vWapPoint = 0;
         public bool Hedged = false;
 
@@ -63,11 +67,13 @@ namespace cAlgo
 
         protected override void OnTick()
         {
+
             InitializePivotPoints();
+            CalculateSLTP();
             ModifyStopLosses();
             ModifyTakeProfits();
             ExecuteNewMarketOrder();
-            if (!Hedged && Positions.Find("Bảo hiểm rủi ro") == null)
+            if (Positions.Find("Bảo hiểm rủi ro") == null)
                 HedgePositions();
         }
 
@@ -83,6 +89,14 @@ namespace cAlgo
             }
         }
 
+        public void CalculateSLTP()
+        {
+            FirstTP = FirstResistancePoint - Math.Round(FirstResistancePoint / 10000, 2);
+            SecondTP = SecondResistancePoint - Math.Round(SecondResistancePoint / 10000, 2);
+            FirstSL = FirstSupportPoint + Math.Round(FirstSupportPoint / 10000, 2);
+            SecondSL = SecondSupportPoint + Math.Round(SecondSupportPoint / 10000, 2);
+        }
+
         public void ModifyStopLosses()
         {
             // Tính cắt lỗ của lệnh khi đặt 
@@ -95,30 +109,30 @@ namespace cAlgo
                     }
                     if (openedPosition.StopLoss == null || openedPosition.TakeProfit == null)
                     {
-                        ModifyPosition(openedPosition, FirstSupportPoint, FirstResistancePoint);
+                        ModifyPosition(openedPosition, FirstSL, FirstTP);
                     }
-                    else if (openedPosition.StopLoss > FirstSupportPoint)
+                    else if (openedPosition.StopLoss > FirstSL)
                     {
-                        ModifyPosition(openedPosition, FirstSupportPoint, openedPosition.TakeProfit);
+                        ModifyPosition(openedPosition, FirstSL, openedPosition.TakeProfit);
                     }
-                    else if (openedPosition.StopLoss <= FirstSupportPoint && openedPosition.StopLoss > SecondSupportPoint)
+                    else if (openedPosition.StopLoss <= FirstSL && openedPosition.StopLoss > SecondSL)
                     {
-                        ModifyPosition(openedPosition, SecondSupportPoint, openedPosition.TakeProfit);
+                        ModifyPosition(openedPosition, SecondSL, openedPosition.TakeProfit);
                     }
                 }
                 else
                 {
                     if (openedPosition.StopLoss == null || openedPosition.TakeProfit == null)
                     {
-                        ModifyPosition(openedPosition, FirstResistancePoint, FirstSupportPoint);
+                        ModifyPosition(openedPosition, FirstTP, FirstSL);
                     }
-                    else if (openedPosition.StopLoss < FirstResistancePoint)
+                    else if (openedPosition.StopLoss < FirstTP)
                     {
-                        ModifyPosition(openedPosition, FirstResistancePoint, openedPosition.TakeProfit);
+                        ModifyPosition(openedPosition, FirstTP, openedPosition.TakeProfit);
                     }
-                    else if (openedPosition.StopLoss >= FirstResistancePoint && openedPosition.StopLoss < SecondResistancePoint)
+                    else if (openedPosition.StopLoss >= FirstTP && openedPosition.StopLoss < SecondTP)
                     {
-                        ModifyPosition(openedPosition, SecondResistancePoint, openedPosition.TakeProfit);
+                        ModifyPosition(openedPosition, SecondTP, openedPosition.TakeProfit);
                     }
                 }
             }
@@ -131,24 +145,24 @@ namespace cAlgo
             {
                 if (openedPosition.TradeType == TradeType.Buy)
                 {
-                    if (openedPosition.TakeProfit < FirstResistancePoint)
+                    if (openedPosition.TakeProfit < FirstTP)
                     {
-                        ModifyPosition(openedPosition, openedPosition.StopLoss, FirstResistancePoint);
+                        ModifyPosition(openedPosition, openedPosition.StopLoss, FirstTP);
                     }
-                    else if (openedPosition.TakeProfit >= FirstResistancePoint && openedPosition.TakeProfit < SecondResistancePoint)
+                    else if (openedPosition.TakeProfit >= FirstTP && openedPosition.TakeProfit < SecondTP)
                     {
-                        ModifyPosition(openedPosition, openedPosition.StopLoss, SecondResistancePoint);
+                        ModifyPosition(openedPosition, openedPosition.StopLoss, SecondTP);
                     }
                 }
                 else
                 {
-                    if (openedPosition.TakeProfit > FirstSupportPoint)
+                    if (openedPosition.TakeProfit > FirstSL)
                     {
-                        ModifyPosition(openedPosition, openedPosition.StopLoss, FirstSupportPoint);
+                        ModifyPosition(openedPosition, openedPosition.StopLoss, FirstSL);
                     }
-                    else if (openedPosition.TakeProfit <= FirstSupportPoint && openedPosition.TakeProfit > SecondSupportPoint)
+                    else if (openedPosition.TakeProfit <= FirstSL && openedPosition.TakeProfit > SecondSL)
                     {
-                        ModifyPosition(openedPosition, openedPosition.StopLoss, SecondSupportPoint);
+                        ModifyPosition(openedPosition, openedPosition.StopLoss, SecondSL);
                     }
                 }
             }

@@ -32,6 +32,9 @@ namespace cAlgo.Indicators
         [Parameter("Hiện lịch sử khối lượng giá trung bình", DefaultValue = true)]
         public bool ShowHistoricalvWap { get; set; }
 
+        [Parameter("Hiện thông tin tài khoản", DefaultValue = true)]
+        public bool ShowAccountSummary { get; set; }
+
         [Parameter("Vị trí đặt thông tin", DefaultValue = 1, MinValue = 0, MaxValue = 4)]
         public int corner { get; set; }
 
@@ -104,7 +107,10 @@ namespace cAlgo.Indicators
                     break;
             }
             CalculateIndicatorsInformation(index, corner_position);
-            CalculateAccountSummary(corner_position);
+            if (ShowAccountSummary)
+            {
+                CalculateAccountSummary(corner_position);
+            }
             InitializeVWap(index, corner_position);
             InitializeTrendlines();
 
@@ -244,12 +250,12 @@ namespace cAlgo.Indicators
                 if (Percentage > 0)
                 {
                     ChartObjects.DrawText("Positions", "\n\n\n\n" + Symbol.Code, corner_position, Colors.MediumSpringGreen);
-                    ChartObjects.DrawText("Index Positions", ":\n\n\n\n\t" + "  " + Math.Round(Percentage * 100, 4) + "% | " + lots + " lots | " + type + " | " + netProfit + " USD", corner_position, Colors.MediumSpringGreen);
+                    ChartObjects.DrawText("Index Positions", ":\n\n\n\n\t" + "  " + Math.Round(Percentage * 100, 4) + "% | " + lots + " lots | " + type + " | " + Math.Round(netProfit, 2) + " USD", corner_position, Colors.MediumSpringGreen);
                 }
                 else if (Percentage < 0)
                 {
                     ChartObjects.DrawText("Positions", "\n\n\n\n" + Symbol.Code, corner_position, Colors.OrangeRed);
-                    ChartObjects.DrawText("Index Positions", "\n\n\n\n\t" + "  " + Math.Round(Percentage * 100, 4) + "% | " + lots + " lots | " + type + " | " + netProfit + " USD", corner_position, Colors.OrangeRed);
+                    ChartObjects.DrawText("Index Positions", "\n\n\n\n\t" + "  " + Math.Round(Percentage * 100, 4) + "% | " + lots + " lots | " + type + " | " + Math.Round(netProfit, 2) + " USD", corner_position, Colors.OrangeRed);
                 }
             }
             else

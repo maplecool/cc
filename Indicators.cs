@@ -141,9 +141,8 @@ namespace cAlgo.Indicators
             costPerPip = (double)((int)(Symbol.PipValue * 10000000)) / 100;
             positionSizeForRisk = (Account.Balance * stopLossRiskPercent / 100) / (stopLossInPips * costPerPip);
 
-            ChartObjects.DrawText("IDK", "\n\n\n\n\n---------------------------------", corner_position, Colors.White);
-            ChartObjects.DrawText("Account Summary", "\n\n\n\n\n\nTHÔNG TIN TÀI KHOẢN:", corner_position, Colors.MediumSpringGreen);
-            string text = string.Format("\n\n\n\n\n\n\nSpread của đồng này: {0,0} \nTổng lợi nhuận thu được: {1,0}% \nTổng lợi nhuận hôm nay: {2,0}% \nSố dư: {3,0} USD \nVốn thực tế: {4,0} USD \nLợi nhuận: {5,0} USD \nSố lượng lot an toàn: {6,0}", spread * 10, Math.Round(totalGain, 2), Math.Round(totalGainToday, 2), Account.Balance, Account.Equity, Math.Round(gain, 2), Math.Round(positionSizeForRisk, 2));
+            ChartObjects.DrawText("Account Summary", "\n\n\n\n\nAccount Summary:", corner_position, Colors.MediumSpringGreen);
+            string text = string.Format("\n\n\n\n\n\nSpread: {0,0} \nTotal gain: {1,0}% \nToday gain: {2,0}% \nBalance: {3,0} USD \nEquity: {4,0} USD \nProfit: {5,0} USD \nSafe lot: {6,0}", spread * 10, Math.Round(totalGain, 2), Math.Round(totalGainToday, 2), Account.Balance, Account.Equity, Math.Round(gain, 2), Math.Round(positionSizeForRisk, 2));
             ChartObjects.DrawText("Account Text", "\t" + text, corner_position, Colors.White);
         }
 
@@ -245,12 +244,12 @@ namespace cAlgo.Indicators
                 if (Percentage > 0)
                 {
                     ChartObjects.DrawText("Positions", "\n\n\n\n" + Symbol.Code, corner_position, Colors.MediumSpringGreen);
-                    ChartObjects.DrawText("Index Positions", ":\n\n\n\n\t" + "  " + Math.Round(Percentage * 100, 4) + "% | " + lots + " lots | " + type, corner_position, Colors.MediumSpringGreen);
+                    ChartObjects.DrawText("Index Positions", ":\n\n\n\n\t" + "  " + Math.Round(Percentage * 100, 4) + "% | " + lots + " lots | " + type + " | " + netProfit + " USD", corner_position, Colors.MediumSpringGreen);
                 }
                 else if (Percentage < 0)
                 {
                     ChartObjects.DrawText("Positions", "\n\n\n\n" + Symbol.Code, corner_position, Colors.OrangeRed);
-                    ChartObjects.DrawText("Index Positions", "\n\n\n\n\t" + "  " + Math.Round(Percentage * 100, 4) + "% | " + lots + " lots | " + type, corner_position, Colors.OrangeRed);
+                    ChartObjects.DrawText("Index Positions", "\n\n\n\n\t" + "  " + Math.Round(Percentage * 100, 4) + "% | " + lots + " lots | " + type + " | " + netProfit + " USD", corner_position, Colors.OrangeRed);
                 }
             }
             else

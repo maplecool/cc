@@ -14,7 +14,7 @@ namespace cAlgo.Indicators
         [Parameter("Phần trăm chịu lỗ tối đa", DefaultValue = 5)]
         public int stopLossRiskPercent { get; set; }
 
-        [Parameter("Số pips tối đa chịu lỗ", DefaultValue = 20)]
+        [Parameter("Số pips tối đa chịu lỗ", DefaultValue = 25)]
         public int stopLossInPips { get; set; }
 
         [Output("Đường độ lệch chuẩn trên", Color = Colors.Gray, PlotType = PlotType.Points)]
@@ -148,7 +148,7 @@ namespace cAlgo.Indicators
             positionSizeForRisk = (Account.Balance * stopLossRiskPercent / 100) / (stopLossInPips * costPerPip);
 
             ChartObjects.DrawText("Account Summary", "\n\n\n\n\nAccount Summary:", corner_position, Colors.MediumSpringGreen);
-            string text = string.Format("\n\n\n\n\n\nSpread: {0,0} \nTotal gain: {1,0}% \nToday gain: {2,0}% \nBalance: {3,0} USD \nEquity: {4,0} USD \nProfit: {5,0} USD \nSafe lot: {6,0}", spread * 10, Math.Round(totalGain, 2), Math.Round(totalGainToday, 2), Account.Balance, Account.Equity, Math.Round(gain, 2), Math.Round(positionSizeForRisk, 2));
+            string text = string.Format("\n\n\n\n\n\nSpread: {0,0} \nTotal gain: {1,0}% \nToday gain: {2,0}% \nBalance: {3,0} USD \nEquity: {4,0} USD \nProfit: {5,0} USD \nMaximum lot size: {6,0}", spread * 10, Math.Round(totalGain, 2), Math.Round(totalGainToday, 2), Account.Balance, Account.Equity, Math.Round(gain, 2), Math.Round(positionSizeForRisk, 2));
             ChartObjects.DrawText("Account Text", "\t" + text, corner_position, Colors.White);
         }
 
@@ -228,6 +228,8 @@ namespace cAlgo.Indicators
                         netProfit += position.NetProfit;
                     }
                 }
+                SellQuantity = Math.Round(SellQuantity, 2);
+                BuyQuantity = Math.Round(BuyQuantity, 2);
                 if (BuyQuantity != SellQuantity)
                 {
                     if (BuyQuantity > SellQuantity)
@@ -235,10 +237,15 @@ namespace cAlgo.Indicators
                         lots = BuyQuantity - SellQuantity;
                         type = "BUYING";
                     }
-                    else
+                    else if (SellQuantity > BuyQuantity)
                     {
                         lots = SellQuantity - BuyQuantity;
                         type = "SELLING";
+                    }
+                    else
+                    {
+                        lots = BuyQuantity;
+                        type = "HEDGED";
                     }
                 }
                 else
@@ -249,19 +256,20 @@ namespace cAlgo.Indicators
                 Percentage = netProfit / Account.Balance;
                 if (Percentage > 0)
                 {
-                    ChartObjects.DrawText("Positions", "\n\n\n\n" + Symbol.Code, corner_position, Colors.MediumSpringGreen);
-                    ChartObjects.DrawText("Index Positions", ":\n\n\n\n\t" + "  " + Math.Round(Percentage * 100, 4) + "% | " + lots + " lots | " + type + " | " + Math.Round(netProfit, 2) + " USD", corner_position, Colors.MediumSpringGreen);
+                    ChartObjects.DrawText("Positions", "\n\n\n\n" + Symbol.Code, corner_position, Colors.White);
+                    ChartObjects.DrawText("Index Positions", ":\n\n\n\n\t" + "  " + Math.Round(Percentage * 100, 4) + "% | " + Math.Round(lots, 2) + " lots | " + type + " | " + Math.Round(netProfit, 2) + " USD", corner_position, Colors.White);
                 }
                 else if (Percentage < 0)
                 {
-                    ChartObjects.DrawText("Positions", "\n\n\n\n" + Symbol.Code, corner_position, Colors.OrangeRed);
-                    ChartObjects.DrawText("Index Positions", "\n\n\n\n\t" + "  " + Math.Round(Percentage * 100, 4) + "% | " + lots + " lots | " + type + " | " + Math.Round(netProfit, 2) + " USD", corner_position, Colors.OrangeRed);
+                    ChartObjects.DrawText("Positions", "\n\n\n\n" + Symbol.Code, corner_position, Colors.White);
+                    ChartObjects.DrawText("Index Positions", "\n\n\n\n\t" + "  " + Math.Round(Percentage * 100, 4) + "% | " + Math.Round(lots, 2) + " lots | " + type + " | " + Math.Round(netProfit, 2) + " USD", corner_position, Colors.White);
                 }
             }
             else
             {
-                ChartObjects.DrawText("Positions", "\n\n\n\n" + Symbol.Code + " (Chưa có lệnh)", corner_position, Colors.White);
+                ChartObjects.DrawText("Positions", "\n\n\n\n" + Symbol.Code + " Chưa có lệnh", corner_position, Colors.White);
             }
+
         }
 
         public void InitializeVWap(int index, StaticPosition corner_position)

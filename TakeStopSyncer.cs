@@ -23,9 +23,6 @@ namespace cAlgo
         [Parameter("Sử dụng trượt giá", DefaultValue = false)]
         public bool trailingStop { get; set; }
 
-        [Parameter("Sử dụng quỹ phòng hộ", DefaultValue = false)]
-        public bool hedge { get; set; }
-
         protected override void OnStart()
         {
             Modify();

@@ -26,13 +26,13 @@ namespace cAlgo.Indicators
         [Output("Khối lượng giá trung bình (vWAP)", LineStyle = LineStyle.Solid, Thickness = 2, Color = Colors.LawnGreen)]
         public IndicatorDataSeries VWAP { get; set; }
 
-        [Parameter("Hiện đường độ lệch chuẩn (Standard Deviation)", DefaultValue = true)]
+        [Parameter("Hiện đường độ lệch chuẩn (Standard Deviation)", DefaultValue = false)]
         public bool ShowDeviation { get; set; }
 
-        [Parameter("Hiện lịch sử khối lượng giá trung bình", DefaultValue = true)]
+        [Parameter("Hiện lịch sử khối lượng giá trung bình", DefaultValue = false)]
         public bool ShowHistoricalvWap { get; set; }
 
-        [Parameter("Hiện thông tin tài khoản", DefaultValue = true)]
+        [Parameter("Hiện thông tin tài khoản", DefaultValue = false)]
         public bool ShowAccountSummary { get; set; }
 
         [Parameter("Vị trí đặt thông tin", DefaultValue = 1, MinValue = 0, MaxValue = 4)]
@@ -59,10 +59,10 @@ namespace cAlgo.Indicators
         [Parameter("% D Periods", DefaultValue = 9, MinValue = 1)]
         public int DPeriods { get; set; }
 
-        [Parameter("Moving Average Type", DefaultValue = MovingAverageType.Simple)]
+        [Parameter("Moving Average Type", DefaultValue = MovingAverageType.Exponential)]
         public MovingAverageType MAType { get; set; }
 
-        [Parameter("TrendLines Periods", DefaultValue = 30, MinValue = 14)]
+        [Parameter("TrendLines Periods", DefaultValue = 14, MinValue = 14)]
         public int TrendLinesPeriods { get; set; }
 
         // private int end_bar = 0;
@@ -116,7 +116,6 @@ namespace cAlgo.Indicators
 
             return;
         }
-
         public void CalculateAccountSummary(StaticPosition corner_position)
         {
             double spread = 0;
@@ -126,8 +125,6 @@ namespace cAlgo.Indicators
             double gainToday = 0;
             double totalGain = 0;
             double totalGainToday = 0;
-
-            spread = Math.Round(Symbol.Spread / Symbol.PipSize, 5);
 
             foreach (var position in History)
             {
@@ -147,8 +144,8 @@ namespace cAlgo.Indicators
             costPerPip = (double)((int)(Symbol.PipValue * 10000000)) / 100;
             positionSizeForRisk = (Account.Balance * stopLossRiskPercent / 100) / (stopLossInPips * costPerPip);
 
-            ChartObjects.DrawText("Account Summary", "\n\n\n\n\nAccount Summary:", corner_position, Colors.MediumSpringGreen);
-            string text = string.Format("\n\n\n\n\n\nSpread: {0,0} \nTotal gain: {1,0}% \nToday gain: {2,0}% \nBalance: {3,0} USD \nEquity: {4,0} USD \nProfit: {5,0} USD \nMaximum lot size: {6,0}", spread * 10, Math.Round(totalGain, 2), Math.Round(totalGainToday, 2), Account.Balance, Account.Equity, Math.Round(gain, 2), Math.Round(positionSizeForRisk, 2));
+            ChartObjects.DrawText("Account Summary", "\n\n\n\n\n\nAccount Summary:", corner_position, Colors.MediumSpringGreen);
+            string text = string.Format("\n\n\n\n\n\n\nTotal gain: {0,0}% \nToday gain: {1,0}% \nBalance: {2,0} USD \nEquity: {3,0} USD \nProfit: {4,0} USD \nMaximum lot size: {5,0}", Math.Round(totalGain, 2), Math.Round(totalGainToday, 2), Account.Balance, Account.Equity, Math.Round(gain, 2), Math.Round(positionSizeForRisk, 2));
             ChartObjects.DrawText("Account Text", "\t" + text, corner_position, Colors.White);
         }
 
@@ -269,7 +266,8 @@ namespace cAlgo.Indicators
             {
                 ChartObjects.DrawText("Positions", "\n\n\n\n" + Symbol.Code + " Chưa có lệnh", corner_position, Colors.White);
             }
-
+            double spread = Math.Round(Symbol.Spread / Symbol.PipSize, 5);
+            ChartObjects.DrawText("Spreads", "\n\n\n\n\nSpread: " + spread + " pips", corner_position, Colors.White);
         }
 
         public void InitializeVWap(int index, StaticPosition corner_position)

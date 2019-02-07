@@ -16,6 +16,7 @@ namespace cAlgo.Robots
                     ClosePosition(position);
                 }
             }
+            stop();
         }
     }
 }

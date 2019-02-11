@@ -5,7 +5,7 @@ using cAlgo.API.Indicators;
 
 namespace cAlgo.Indicators
 {
-    [Indicator(IsOverlay = true, TimeZone = TimeZones.UTC, AccessRights = AccessRights.FullAccess)]
+    [Indicator(IsOverlay = true, AccessRights = AccessRights.FullAccess)]
     public class PIndicator : Indicator
     {
         [Parameter("Phần trăm chịu lỗ tối đa", DefaultValue = 5)]
@@ -25,6 +25,7 @@ namespace cAlgo.Indicators
 
         [Parameter("Vị trí đặt thông tin", DefaultValue = 1, MinValue = 1, MaxValue = 4)]
         public int corner { get; set; }
+
         [Parameter("RSI Signal Periods", DefaultValue = 14, MinValue = 10)]
         public int RSIPeriods { get; set; }
 
@@ -37,13 +38,7 @@ namespace cAlgo.Indicators
         [Parameter("VWAP Periods", DefaultValue = 0)]
         public int VWAPPeriods { get; set; }
 
-        // private int end_bar = 0;
-        private int start_bar = 0;
-        private int oldCurrentDay = 0;
         public StaticPosition corner_position;
-        public int CurrentDay = 0;
-
-        // Indicators:
         private RelativeStrengthIndex _RSI;
         private HistoricalVolatility _HV;
         private ExponentialMovingAverage _EMA10;
@@ -51,11 +46,6 @@ namespace cAlgo.Indicators
         private ExponentialMovingAverage _EMA50;
         private ExponentialMovingAverage _EMA100;
         private ExponentialMovingAverage _EMA200;
-
-        // Text:
-        private const string UpArrow = "▲";
-        private const string NeutralArrow = "▬";
-        private const string DownArrow = "▼";
 
         protected override void Initialize()
         {
@@ -125,7 +115,7 @@ namespace cAlgo.Indicators
             costPerPip = (double)((int)(Symbol.PipValue * 10000000)) / 100;
             positionSizeForRisk = ((Account.Balance * 50 / 100) / (20 * costPerPip)) * (Account.PreciseLeverage / 500);
 
-            string text = string.Format("\n\n\n\nTotal gain: {0,0}% \nToday gain: {1,0}% \nBalance: {2,0}$ \nEquity: {3,0}$ \nProfit: {4,0}$ \nLot: {5,0} lot", Math.Round(totalGain, 2), Math.Round(totalGainToday, 2), Account.Balance, Account.Equity, Math.Round(gain, 2), Math.Round(positionSizeForRisk, 2));
+            string text = string.Format("\n\n\n\nTotal gain: {0,0}% \nToday gain: {1,0}% \nBalance: {2,0}$ \nEquity: {3,0}$ \nProfit: {4,0}$ \nQuanity: {5,0} lot", Math.Round(totalGain, 2), Math.Round(totalGainToday, 2), Account.Balance, Account.Equity, Math.Round(gain, 2), Math.Round(positionSizeForRisk, 2));
             ChartObjects.DrawText("Account Text", "\t" + text, corner_position, Colors.SlateGray);
         }
 
@@ -242,13 +232,15 @@ namespace cAlgo.Indicators
                 Percentage = netProfit / Account.Balance;
                 if (Percentage > 0)
                 {
-                    ChartObjects.DrawText("Positions", "\n\n\n" + Symbol.Code, corner_position, Colors.MediumSpringGreen);
-                    ChartObjects.DrawText("Index Positions", ":\n\n\n\t" + "  " + Math.Round(Percentage * 100, 4) + "% | " + Math.Round(lots, 2) + " lots | " + type, corner_position, Colors.MediumSpringGreen);
+                    ChartObjects.DrawText("Index Positions", "\n\n\n" + Symbol.Code + "\t" + Math.Round(Percentage * 100, 4) + "% | " + Math.Round(lots, 2) + " lots | " + type, corner_position, Colors.MediumSpringGreen);
                 }
                 else if (Percentage < 0)
                 {
-                    ChartObjects.DrawText("Positions", "\n\n\n" + Symbol.Code, corner_position, Colors.OrangeRed);
-                    ChartObjects.DrawText("Index Positions", "\n\n\n\t" + "  " + Math.Round(Percentage * 100, 4) + "% | " + Math.Round(lots, 2) + " lots | " + type, corner_position, Colors.OrangeRed);
+                    ChartObjects.DrawText("Index Positions", "\n\n\n" + Symbol.Code + "\t" + Math.Round(Percentage * 100, 4) + "% | " + Math.Round(lots, 2) + " lots | " + type, corner_position, Colors.OrangeRed);
+                }
+                else
+                {
+                    ChartObjects.DrawText("Index Positions", "\n\n\n" + Symbol.Code + "\t" + Math.Round(Percentage * 100, 4) + "% | " + Math.Round(lots, 2) + " lots | " + type, corner_position, Colors.White);
                 }
             }
             else
@@ -259,31 +251,31 @@ namespace cAlgo.Indicators
 
         public double InitializeVWap(int index)
         {
-            int ii = index;
-            double CumTypPrice = 0;
-            double CumVol = 0;
+            int i = index;
+            double CumulativeTypicalPrice = 0;
+            double CumulativeVolume = 0;
 
             if (VWAPPeriods == 0)
             {
-                while (MarketSeries.OpenTime[ii] >= MarketSeries.OpenTime[ii].Date && ii != 0)
+                while (MarketSeries.OpenTime[i] >= MarketSeries.OpenTime[i].Date && i != 0)
                 {
-                    CumTypPrice += ((MarketSeries.Close[ii] + MarketSeries.High[ii] + MarketSeries.Low[ii]) / 3) * MarketSeries.TickVolume[ii];
-                    CumVol += MarketSeries.TickVolume[ii];
-                    ii--;
-                    if (MarketSeries.OpenTime[ii].Hour == 0 && MarketSeries.OpenTime[ii].Minute == 0)
+                    CumulativeTypicalPrice += ((MarketSeries.Close[i] + MarketSeries.High[i] + MarketSeries.Low[i]) / 3) * MarketSeries.TickVolume[i];
+                    CumulativeVolume += MarketSeries.TickVolume[i];
+                    i--;
+                    if (MarketSeries.OpenTime[i].Hour == 0 && MarketSeries.OpenTime[i].Minute == 0)
                         break;
                 }
             }
             else
             {
-                for (; ii >= MarketSeries.OpenTime.Count - VWAPPeriods; ii--)
+                for (; i >= MarketSeries.OpenTime.Count - VWAPPeriods; i--)
                 {
-                    CumTypPrice += ((MarketSeries.Close[ii] + MarketSeries.High[ii] + MarketSeries.Low[ii]) / 3) * MarketSeries.TickVolume[ii];
-                    CumVol += MarketSeries.TickVolume[ii];
+                    CumulativeTypicalPrice += ((MarketSeries.Close[i] + MarketSeries.High[i] + MarketSeries.Low[i]) / 3) * MarketSeries.TickVolume[i];
+                    CumulativeVolume += MarketSeries.TickVolume[i];
                 }
             }
 
-            return VWAP[index] = CumTypPrice / CumVol;
+            return VWAP[index] = CumulativeTypicalPrice / CumulativeVolume;
         }
 
         private void InitializeTrendlines()

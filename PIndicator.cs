@@ -232,15 +232,15 @@ namespace cAlgo.Indicators
                 Percentage = netProfit / Account.Balance;
                 if (Percentage > 0)
                 {
-                    ChartObjects.DrawText("Index Positions", "\n\n\n" + Symbol.Code + "\t" + Math.Round(Percentage * 100, 4) + "% | " + Math.Round(lots, 2) + " lots | " + type, corner_position, Colors.MediumSpringGreen);
+                    ChartObjects.DrawText("Index Positions", "\n\n\n" + Symbol.Code + " " + Math.Round(Percentage * 100, 4) + "% | " + Math.Round(lots, 2) + " lots | " + type, corner_position, Colors.MediumSpringGreen);
                 }
                 else if (Percentage < 0)
                 {
-                    ChartObjects.DrawText("Index Positions", "\n\n\n" + Symbol.Code + "\t" + Math.Round(Percentage * 100, 4) + "% | " + Math.Round(lots, 2) + " lots | " + type, corner_position, Colors.OrangeRed);
+                    ChartObjects.DrawText("Index Positions", "\n\n\n" + Symbol.Code + " " + Math.Round(Percentage * 100, 4) + "% | " + Math.Round(lots, 2) + " lots | " + type, corner_position, Colors.OrangeRed);
                 }
                 else
                 {
-                    ChartObjects.DrawText("Index Positions", "\n\n\n" + Symbol.Code + "\t" + Math.Round(Percentage * 100, 4) + "% | " + Math.Round(lots, 2) + " lots | " + type, corner_position, Colors.White);
+                    ChartObjects.DrawText("Index Positions", "\n\n\n" + Symbol.Code + " " + Math.Round(Percentage * 100, 4) + "% | " + Math.Round(lots, 2) + " lots | " + type, corner_position, Colors.White);
                 }
             }
             else

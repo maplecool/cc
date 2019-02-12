@@ -26,10 +26,13 @@ namespace cAlgo.Indicators
         [Parameter("Vị trí đặt thông tin", DefaultValue = 1, MinValue = 1, MaxValue = 4)]
         public int corner { get; set; }
 
-        [Parameter("RSI Signal Periods", DefaultValue = 14, MinValue = 10)]
-        public int RSIPeriods { get; set; }
+        [Parameter("Average True Range Signal Periods", DefaultValue = 14, MinValue = 1)]
+        public int ATRPeriods { get; set; }
 
-        [Parameter("Historical Volatility Signal Periods", DefaultValue = 20, MinValue = 10)]
+        [Parameter("Average True Range Moving Average Type", DefaultValue = MovingAverageType.Exponential)]
+        public MovingAverageType maType { get; set; }
+
+        [Parameter("Historical Volatility Signal Periods", DefaultValue = 14, MinValue = 1)]
         public int HVPeriods { get; set; }
 
         [Parameter("TrendLines Periods", DefaultValue = 14, MinValue = 10)]
@@ -38,19 +41,22 @@ namespace cAlgo.Indicators
         [Parameter("VWAP Periods", DefaultValue = 0)]
         public int VWAPPeriods { get; set; }
 
-        public StaticPosition corner_position;
-        private RelativeStrengthIndex _RSI;
+        private AverageTrueRange _ATR;
         private HistoricalVolatility _HV;
+        public StaticPosition corner_position;
         private ExponentialMovingAverage _EMA10;
         private ExponentialMovingAverage _EMA20;
         private ExponentialMovingAverage _EMA50;
         private ExponentialMovingAverage _EMA100;
         private ExponentialMovingAverage _EMA200;
 
+        private const VerticalAlignment vAlign = VerticalAlignment.Top;
+        private const HorizontalAlignment hAlign = HorizontalAlignment.Center;
+
         protected override void Initialize()
         {
-            _RSI = Indicators.RelativeStrengthIndex(MarketSeries.Close, RSIPeriods);
-            _HV = Indicators.HistoricalVolatility(MarketSeries.Close, HVPeriods, 2520000);
+            _ATR = Indicators.AverageTrueRange(ATRPeriods, maType);
+            _HV = Indicators.HistoricalVolatility(MarketSeries.Close, HVPeriods, 252);
             _EMA10 = Indicators.ExponentialMovingAverage(MarketSeries.Close, 10);
             _EMA20 = Indicators.ExponentialMovingAverage(MarketSeries.Close, 20);
             _EMA100 = Indicators.ExponentialMovingAverage(MarketSeries.Close, 100);
@@ -74,7 +80,7 @@ namespace cAlgo.Indicators
                     corner_position = StaticPosition.BottomRight;
                     break;
             }
-            CalculateIndicatorsInformation(index, corner_position);
+            CalculateIndicators(index, corner_position);
             if (ShowAccountSummary)
             {
                 CalculateAccountSummary(corner_position);
@@ -115,14 +121,15 @@ namespace cAlgo.Indicators
             costPerPip = (double)((int)(Symbol.PipValue * 10000000)) / 100;
             positionSizeForRisk = ((Account.Balance * 50 / 100) / (20 * costPerPip)) * (Account.PreciseLeverage / 500);
 
-            string text = string.Format("\n\n\n\nTotal gain: {0,0}% \nToday gain: {1,0}% \nBalance: {2,0}$ \nEquity: {3,0}$ \nProfit: {4,0}$ \nQuanity: {5,0} lot", Math.Round(totalGain, 2), Math.Round(totalGainToday, 2), Account.Balance, Account.Equity, Math.Round(gain, 2), Math.Round(positionSizeForRisk, 2));
+            string text = string.Format("\n\n\n\n\nTotal gain: {0,0}% \nToday gain: {1,0}% \nBalance: {2,0}$ \nEquity: {3,0}$ \nProfit: {4,0}$ \nQuanity: {5,0} lot", Math.Round(totalGain, 2), Math.Round(totalGainToday, 2), Account.Balance, Account.Equity, Math.Round(gain, 2), Math.Round(positionSizeForRisk, 2));
             ChartObjects.DrawText("Account Text", "\t" + text, corner_position, Colors.SlateGray);
         }
 
-        public void CalculateIndicatorsInformation(int index, StaticPosition corner_position)
+        public void CalculateIndicators(int index, StaticPosition corner_position)
         {
             ChartObjects.RemoveObject("Index TREND");
             ChartObjects.RemoveObject("Index SA");
+            ChartObjects.RemoveObject("Index ATR");
             ChartObjects.RemoveObject("Positions");
             ChartObjects.RemoveObject("Index Positions");
 
@@ -166,25 +173,44 @@ namespace cAlgo.Indicators
                     ChartObjects.DrawText("Index TREND", "\nTrending Down", corner_position, Colors.OrangeRed);
                 }
             }
-
-            if (_HV.Result.LastValue != 0)
+            if (_HV.Result.LastValue > 0)
             {
-                ChartObjects.DrawText("SA", "\n\nVolatility:", corner_position, Colors.White);
-                if (_HV.Result.LastValue >= 0.5 && _HV.Result.LastValue < 1)
+                ChartObjects.DrawText("SA", "\n\nVolatility: ", corner_position, Colors.White);
+                if (_HV.Result.IsRising() && _HV.Result.HasCrossedBelow(_HV.Result.Minimum(HVPeriods), HVPeriods) && _HV.Result.LastValue < _HV.Result.Maximum(HVPeriods))
                 {
-                    ChartObjects.DrawText("Index SA", "\n\n\t Normal", corner_position, Colors.LightGreen);
+                    ChartObjects.DrawText("Index SA", "\n\n\t High (" + (Math.Round(_HV.Result.LastValue, 3) * 1000) + " %)", corner_position, Colors.LightGreen);
                 }
-                else if (_HV.Result.IsRising() && (_HV.Result.LastValue <= 2 && _HV.Result.LastValue >= 1))
+                else if (_HV.Result.IsRising() && _HV.Result.HasCrossedAbove(_HV.Result.Maximum(HVPeriods), HVPeriods))
                 {
-                    ChartObjects.DrawText("Index SA", "\n\n\t High", corner_position, Colors.OrangeRed);
+                    ChartObjects.DrawText("Index SA", "\n\n\t Very High (" + (Math.Round(_HV.Result.LastValue, 3) * 1000) + " %)", corner_position, Colors.Red);
                 }
-                else if (_HV.Result.LastValue > 2)
+                if (_HV.Result.IsRising() && _HV.Result.HasCrossedBelow(_HV.Result.Minimum(HVPeriods), HVPeriods) && _HV.Result.LastValue < _HV.Result.Minimum(HVPeriods))
                 {
-                    ChartObjects.DrawText("Index SA", "\n\n\t Super High", corner_position, Colors.Red);
+                    ChartObjects.DrawText("Index SA", "\n\n\t Very Low (" + (Math.Round(_HV.Result.LastValue, 3) * 1000) + " %)", corner_position, Colors.OrangeRed);
                 }
                 else
                 {
-                    ChartObjects.DrawText("Index SA", "\n\n\t Low", corner_position, Colors.Goldenrod);
+                    ChartObjects.DrawText("Index SA", "\n\n\t Low (" + (Math.Round(_HV.Result.LastValue, 3) * 1000) + " %)", corner_position, Colors.Goldenrod);
+                }
+            }
+            if (_ATR.Result.LastValue > 0)
+            {
+                ChartObjects.DrawText("ATR", "\n\n\nMomentum:", corner_position, Colors.White);
+                if (_ATR.Result.IsRising() && _ATR.Result.HasCrossedBelow(_ATR.Result.Minimum(ATRPeriods), ATRPeriods) && _ATR.Result.LastValue < _ATR.Result.Maximum(ATRPeriods))
+                {
+                    ChartObjects.DrawText("Index ATR", "\n\n\n\t      High (" + (Math.Round(_ATR.Result.LastValue, 3) * 1000) + " pips)", corner_position, Colors.LightGreen);
+                }
+                else if (_ATR.Result.IsRising() && _ATR.Result.HasCrossedAbove(_ATR.Result.Maximum(ATRPeriods), ATRPeriods))
+                {
+                    ChartObjects.DrawText("Index ATR", "\n\n\n\t      Very High (" + (Math.Round(_ATR.Result.LastValue, 3) * 1000) + " pips)", corner_position, Colors.Red);
+                }
+                if (_ATR.Result.IsRising() && _ATR.Result.HasCrossedBelow(_ATR.Result.Minimum(ATRPeriods), ATRPeriods) && _ATR.Result.LastValue < _ATR.Result.Minimum(ATRPeriods))
+                {
+                    ChartObjects.DrawText("Index ATR", "\n\n\n\t      Very Low (" + (Math.Round(_ATR.Result.LastValue, 3) * 1000) + " pips)", corner_position, Colors.OrangeRed);
+                }
+                else
+                {
+                    ChartObjects.DrawText("Index ATR", "\n\n\n\t      Low (" + (Math.Round(_ATR.Result.LastValue, 3) * 1000) + " pips)", corner_position, Colors.Goldenrod);
                 }
             }
             if (Positions.Count != 0)
@@ -232,20 +258,20 @@ namespace cAlgo.Indicators
                 Percentage = netProfit / Account.Balance;
                 if (Percentage > 0)
                 {
-                    ChartObjects.DrawText("Index Positions", "\n\n\n" + Symbol.Code + " " + Math.Round(Percentage * 100, 4) + "% | " + Math.Round(lots, 2) + " lots | " + type, corner_position, Colors.MediumSpringGreen);
+                    ChartObjects.DrawText("Index Positions", "\n\n\n\n" + Symbol.Code + " " + Math.Round(Percentage * 100, 4) + "% | " + Math.Round(lots, 2) + " lots | " + type, corner_position, Colors.MediumSpringGreen);
                 }
                 else if (Percentage < 0)
                 {
-                    ChartObjects.DrawText("Index Positions", "\n\n\n" + Symbol.Code + " " + Math.Round(Percentage * 100, 4) + "% | " + Math.Round(lots, 2) + " lots | " + type, corner_position, Colors.OrangeRed);
+                    ChartObjects.DrawText("Index Positions", "\n\n\n\n" + Symbol.Code + " " + Math.Round(Percentage * 100, 4) + "% | " + Math.Round(lots, 2) + " lots | " + type, corner_position, Colors.OrangeRed);
                 }
                 else
                 {
-                    ChartObjects.DrawText("Index Positions", "\n\n\n" + Symbol.Code + " " + Math.Round(Percentage * 100, 4) + "% | " + Math.Round(lots, 2) + " lots | " + type, corner_position, Colors.White);
+                    ChartObjects.DrawText("Index Positions", "\n\n\n\n" + Symbol.Code + " " + Math.Round(Percentage * 100, 4) + "% | " + Math.Round(lots, 2) + " lots | " + type, corner_position, Colors.White);
                 }
             }
             else
             {
-                ChartObjects.DrawText("Positions", "\n\n\n" + Symbol.Code + " (Chưa có lệnh)", corner_position, Colors.White);
+                ChartObjects.DrawText("Positions", "\n\n\n\n" + Symbol.Code + " (Chưa có lệnh)", corner_position, Colors.White);
             }
         }
 

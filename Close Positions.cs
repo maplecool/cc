@@ -11,7 +11,7 @@ namespace cAlgo.Robots
         {
             foreach (var position in Positions)
             {
-                ClosePosition(position);
+                ClosePositionAsync(position);
             }
             Stop();
         }

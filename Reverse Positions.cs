@@ -11,7 +11,7 @@ namespace cAlgo.Robots
         {
             foreach (var position in Positions)
             {
-                ReversePosition(position);
+                ReversePositionAsync(position);
             }
             Stop();
         }

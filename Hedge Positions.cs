@@ -28,11 +28,11 @@ namespace cAlgo.Robots
             }
             if (quantitybuy > quantitysell)
             {
-                ExecuteMarketOrder(TradeType.Sell, Symbol, (quantitybuy - quantitysell) * 100000);
+                ExecuteMarketOrderAsync(TradeType.Sell, Symbol, (quantitybuy - quantitysell) * 100000);
             }
             else if (quantitybuy < quantitysell)
             {
-                ExecuteMarketOrder(TradeType.Buy, Symbol, (quantitysell - quantitybuy) * 100000);
+                ExecuteMarketOrderAsync(TradeType.Buy, Symbol, (quantitysell - quantitybuy) * 100000);
             }
             else
             {

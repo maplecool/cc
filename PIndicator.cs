@@ -8,20 +8,11 @@ namespace cAlgo.Indicators
     [Indicator(IsOverlay = true, AccessRights = AccessRights.FullAccess)]
     public class PIndicator : Indicator
     {
-        [Parameter("Phần trăm chịu lỗ tối đa", DefaultValue = 1)]
-        public int stopLossRiskPercent { get; set; }
-
-        [Parameter("Số pips tối đa chịu lỗ", DefaultValue = 15)]
-        public int stopLossInPips { get; set; }
-
         [Output("Show vWAP", LineStyle = LineStyle.DotsRare, Thickness = 2, Color = Colors.Gold)]
         public IndicatorDataSeries VWAP { get; set; }
 
         [Parameter("Show Account Summary", DefaultValue = false)]
         public bool ShowAccountSummary { get; set; }
-
-        [Parameter("Show Trendline", DefaultValue = false)]
-        public bool ShowTrendline { get; set; }
 
         [Parameter("Vị trí đặt thông tin", DefaultValue = 1, MinValue = 1, MaxValue = 4)]
         public int corner { get; set; }
@@ -34,9 +25,6 @@ namespace cAlgo.Indicators
 
         [Parameter("Historical Volatility Signal Periods", DefaultValue = 14, MinValue = 1)]
         public int HVPeriods { get; set; }
-
-        [Parameter("TrendLines Periods", DefaultValue = 14, MinValue = 10)]
-        public int TrendLinesPeriods { get; set; }
 
         [Parameter("VWAP Periods", DefaultValue = 0)]
         public int VWAPPeriods { get; set; }
@@ -86,10 +74,6 @@ namespace cAlgo.Indicators
                 CalculateAccountSummary(corner_position);
             }
             InitializeVWap(index);
-            if (ShowTrendline)
-            {
-                InitializeTrendlines();
-            }
 
             return;
         }
@@ -136,113 +120,84 @@ namespace cAlgo.Indicators
             {
                 if (MarketSeries.Close.IsRising() && MarketSeries.Close.LastValue > _EMA10.Result.LastValue && MarketSeries.Close.LastValue > _EMA20.Result.LastValue && MarketSeries.Close.LastValue > vwap)
                 {
-                    ChartObjects.DrawText("Index TREND", "\nTrending Up", corner_position, Colors.MediumSpringGreen);
+                    ChartObjects.DrawText("Index TREND", "\n\nTrending Up", corner_position, Colors.Green);
                 }
                 else if (MarketSeries.Close.IsRising() && MarketSeries.Close.LastValue > _EMA10.Result.LastValue && MarketSeries.Close.LastValue < _EMA20.Result.LastValue && MarketSeries.Close.LastValue > vwap)
                 {
-                    ChartObjects.DrawText("Index TREND", "\nTrending Up", corner_position, Colors.MediumSpringGreen);
+                    ChartObjects.DrawText("Index TREND", "\n\nTrending Up", corner_position, Colors.Green);
                 }
                 else if (MarketSeries.Close.IsFalling() && MarketSeries.Close.LastValue < _EMA10.Result.LastValue && MarketSeries.Close.LastValue < _EMA20.Result.LastValue && MarketSeries.Close.LastValue < vwap)
                 {
-                    ChartObjects.DrawText("Index TREND", "\nTrending Down", corner_position, Colors.OrangeRed);
+                    ChartObjects.DrawText("Index TREND", "\n\nTrending Down", corner_position, Colors.OrangeRed);
                 }
                 else if (MarketSeries.Close.IsFalling() && MarketSeries.Close.LastValue > _EMA10.Result.LastValue && MarketSeries.Close.LastValue < _EMA20.Result.LastValue && MarketSeries.Close.LastValue < vwap)
                 {
-                    ChartObjects.DrawText("Index TREND", "\nTrending Down", corner_position, Colors.OrangeRed);
+                    ChartObjects.DrawText("Index TREND", "\n\nTrending Down", corner_position, Colors.OrangeRed);
                 }
                 else
                 {
-                    ChartObjects.DrawText("Index TREND", "\nNo Entry Available", corner_position, Colors.Gold);
+                    ChartObjects.DrawText("Index TREND", "\n\nNo Entry Available", corner_position, Colors.Gold);
                 }
             }
             else if (Chart.TimeFrame >= TimeFrame.Hour)
             {
                 if (MarketSeries.Close.IsRising() && MarketSeries.Close.LastValue > _EMA100.Result.LastValue && MarketSeries.Close.LastValue > _EMA200.Result.LastValue && MarketSeries.Close.LastValue > vwap)
                 {
-                    ChartObjects.DrawText("Index TREND", "\nTrending Up", corner_position, Colors.MediumSpringGreen);
+                    ChartObjects.DrawText("Index TREND", "\n\nTrending Up", corner_position, Colors.Green);
                 }
                 else if (MarketSeries.Close.IsRising() && MarketSeries.Close.LastValue > _EMA100.Result.LastValue && MarketSeries.Close.LastValue < _EMA200.Result.LastValue && MarketSeries.Close.LastValue > vwap)
                 {
-                    ChartObjects.DrawText("Index TREND", "\nTrending Up", corner_position, Colors.MediumSpringGreen);
+                    ChartObjects.DrawText("Index TREND", "\n\nTrending Up", corner_position, Colors.Green);
                 }
                 else if (MarketSeries.Close.IsFalling() && MarketSeries.Close.LastValue < _EMA100.Result.LastValue && MarketSeries.Close.LastValue < _EMA200.Result.LastValue && MarketSeries.Close.LastValue < vwap)
                 {
-                    ChartObjects.DrawText("Index TREND", "\nTrending Down", corner_position, Colors.OrangeRed);
+                    ChartObjects.DrawText("Index TREND", "\n\nTrending Down", corner_position, Colors.OrangeRed);
                 }
                 else if (MarketSeries.Close.IsFalling() && MarketSeries.Close.LastValue > _EMA100.Result.LastValue && MarketSeries.Close.LastValue < _EMA200.Result.LastValue && MarketSeries.Close.LastValue < vwap)
                 {
-                    ChartObjects.DrawText("Index TREND", "\nTrending Down", corner_position, Colors.OrangeRed);
+                    ChartObjects.DrawText("Index TREND", "\n\nTrending Down", corner_position, Colors.OrangeRed);
                 }
                 else
                 {
-                    ChartObjects.DrawText("Index TREND", "\nNo Entry Available", corner_position, Colors.Gold);
+                    ChartObjects.DrawText("Index TREND", "\n\nNo Entry Available", corner_position, Colors.Gold);
                 }
             }
             if (_HV.Result.LastValue > 0)
             {
-                ChartObjects.DrawText("SA", "\n\nVolatility: ", corner_position, Colors.White);
                 if (_HV.Result.IsRising() && _HV.Result.HasCrossedBelow(_HV.Result.Minimum(HVPeriods), HVPeriods) && _HV.Result.LastValue < _HV.Result.Maximum(HVPeriods))
                 {
-                    ChartObjects.DrawText("Index SA", "\n\n\t High (" + Math.Round(_HV.Result.LastValue, 5) + ")", corner_position, Colors.OrangeRed);
+                    ChartObjects.DrawText("Index SA", "\n\n\nVolatility (High)", corner_position, Colors.OrangeRed);
                 }
                 else if (_HV.Result.IsRising() && _HV.Result.HasCrossedAbove(_HV.Result.Maximum(HVPeriods), HVPeriods))
                 {
-                    ChartObjects.DrawText("Index SA", "\n\n\t Very High (" + Math.Round(_HV.Result.LastValue, 5) + ")", corner_position, Colors.Red);
+                    ChartObjects.DrawText("Index SA", "\n\n\nVolatility (Very High)", corner_position, Colors.Red);
                 }
                 if (_HV.Result.IsFalling() && _HV.Result.HasCrossedBelow(_HV.Result.Minimum(HVPeriods), HVPeriods) && _HV.Result.LastValue < _HV.Result.Minimum(HVPeriods))
                 {
-                    ChartObjects.DrawText("Index SA", "\n\n\t Low (" + Math.Round(_HV.Result.LastValue, 5) + ")", corner_position, Colors.Goldenrod);
+                    ChartObjects.DrawText("Index SA", "\n\n\nVolatility (Low)", corner_position, Colors.Goldenrod);
                 }
                 else
                 {
-                    ChartObjects.DrawText("Index SA", "\n\n\t Normal (" + Math.Round(_HV.Result.LastValue, 5) + ")", corner_position, Colors.LightGreen);
+                    ChartObjects.DrawText("Index SA", "\n\n\nVolatility (Normal)", corner_position, Colors.Green);
                 }
             }
             if (_ATR.Result.LastValue > 0)
             {
-                ChartObjects.DrawText("ATR", "\n\n\nMomentum:", corner_position, Colors.White);
-                if (_ATR.Result.IsRising() && _ATR.Result.HasCrossedBelow(_ATR.Result.Minimum(ATRPeriods), ATRPeriods) && _ATR.Result.LastValue < _ATR.Result.Maximum(ATRPeriods))
-                {
-                    ChartObjects.DrawText("Index ATR", "\n\n\n\t      High (" + Math.Round(_ATR.Result.LastValue, 5) + ")", corner_position, Colors.OrangeRed);
-                }
-                else if (_ATR.Result.IsRising() && _ATR.Result.HasCrossedAbove(_ATR.Result.Maximum(ATRPeriods), ATRPeriods))
-                {
-                    ChartObjects.DrawText("Index ATR", "\n\n\n\t      Very High (" + Math.Round(_ATR.Result.LastValue, 5) + ")", corner_position, Colors.Red);
-                }
-                if (_ATR.Result.IsRising() && _ATR.Result.HasCrossedBelow(_ATR.Result.Minimum(ATRPeriods), ATRPeriods) && _ATR.Result.LastValue < _ATR.Result.Minimum(ATRPeriods))
-                {
-                    ChartObjects.DrawText("Index ATR", "\n\n\n\t      Low (" + Math.Round(_ATR.Result.LastValue, 5) + ")", corner_position, Colors.Goldenrod);
-                }
-                else
-                {
-                    ChartObjects.DrawText("Index ATR", "\n\n\n\t      Normal (" + Math.Round(_ATR.Result.LastValue, 5) + ")", corner_position, Colors.LightGreen);
-                }
-            }
-            if (stopLossRiskPercent > 0)
-            {
-                double costPerPip = 0;
-                double positionSizeForRisk = 0;
-
-                costPerPip = (double)((int)(Symbol.PipValue * 10000000)) / 100;
-
-                positionSizeForRisk = ((Account.Balance * stopLossRiskPercent / 100) / (stopLossInPips * costPerPip)) * (Account.PreciseLeverage / 500);
-                ChartObjects.DrawText("Quantity", "\n\n\n\nMax Volume " + stopLossRiskPercent + "% (" + stopLossInPips + " pips):", corner_position, Colors.White);
-                ChartObjects.DrawText("Index Quantity", "\n\n\n\n\t\t\t" + Math.Round(positionSizeForRisk, 2) + " lot", corner_position, Colors.LightGreen);
+                ChartObjects.DrawText("ATR", "\n\n\n\nATR (" + Math.Round(_ATR.Result.LastValue, 5) + ")", corner_position, Colors.Goldenrod);
             }
 
             double TrendPower = MarketSeries.High[index] - MarketSeries.Low[index];
-            ChartObjects.DrawText("POWER", "\n\n\n\n\nTrending Power: ", corner_position, Colors.White);
             if (TrendPower > 0)
             {
-                ChartObjects.DrawText("Index POWER", "\n\n\n\n\n\t\tBulls (" + ((TrendPower < 0.1) ? Math.Round(TrendPower * 1000, 3) : Math.Round(TrendPower, 3)) + ")", corner_position, Colors.LightGreen);
+                ChartObjects.DrawText("Index POWER", "\n\n\n\n\nBulls (" + Math.Round(TrendPower, 5) + ")", corner_position, Colors.Green);
             }
             else if (TrendPower < 0)
             {
-                ChartObjects.DrawText("Index POWER", "\n\n\n\n\n\t\tBear (" + ((TrendPower < 0.1) ? Math.Round(TrendPower * 1000, 3) : Math.Round(TrendPower, 3)) + ")", corner_position, Colors.Red);
+                ChartObjects.DrawText("Index POWER", "\n\n\n\n\nBear (" + Math.Round(TrendPower, 5) + ")", corner_position, Colors.Red);
             }
             else
             {
-                ChartObjects.DrawText("Index POWER", "\n\n\n\n\n\t\tSideways (" + ((TrendPower < 0.1) ? Math.Round(TrendPower * 1000, 3) : Math.Round(TrendPower, 3)) + ")", corner_position, Colors.Goldenrod);
+                ChartObjects.DrawText("Index POWER", "\n\n\n\n\nSideways (" + Math.Round(TrendPower, 5) + ")", corner_position, Colors.Goldenrod);
             }
 
             if (Positions.Count != 0)
@@ -267,10 +222,6 @@ namespace cAlgo.Indicators
                             SellQuantity += position.Quantity;
                         }
                         netProfit += position.NetProfit;
-                    }
-                    else
-                    {
-                        return;
                     }
                 }
                 if (BuyQuantity != SellQuantity)
@@ -334,64 +285,6 @@ namespace cAlgo.Indicators
             }
 
             return VWAP[index] = CumulativeTypicalPrice / CumulativeVolume;
-        }
-
-        private void InitializeTrendlines()
-        {
-            int count = MarketSeries.Close.Count;
-
-            int maxIndex1 = FindNextLocalExtremum(MarketSeries.High, count - 1, true);
-            int maxIndex2 = FindNextLocalExtremum(MarketSeries.High, maxIndex1 - TrendLinesPeriods, true);
-
-            int minIndex1 = FindNextLocalExtremum(MarketSeries.Low, count - 1, false);
-            int minIndex2 = FindNextLocalExtremum(MarketSeries.Low, minIndex1 - TrendLinesPeriods, false);
-
-            int startIndex = Math.Min(maxIndex2, minIndex2) - 200;
-            int endIndex = count + 200;
-
-            DrawTrendLine("high", startIndex, endIndex, maxIndex1, MarketSeries.High[maxIndex1], maxIndex2, MarketSeries.High[maxIndex2]);
-            DrawTrendLine("low", startIndex, endIndex, minIndex1, MarketSeries.Low[minIndex1], minIndex2, MarketSeries.Low[minIndex2]);
-        }
-
-        private void DrawTrendLine(string lineName, int startIndex, int endIndex, int index1, double value1, int index2, double value2)
-        {
-            double gradient = (value2 - value1) / (index2 - index1);
-
-            double startValue = value1 + (startIndex - index1) * gradient;
-            double endValue = value1 + (endIndex - index1) * gradient;
-
-            ChartObjects.DrawLine(lineName, startIndex, startValue, endIndex, endValue, Colors.White, 1, LineStyle.LinesDots);
-            ChartObjects.DrawLine(lineName + "_green", index1, value1, index2, value2, Colors.MediumSpringGreen, 1, LineStyle.LinesDots);
-        }
-
-        private int FindNextLocalExtremum(DataSeries series, int maxIndex, bool findMax)
-        {
-            for (int index = maxIndex; index >= 0; index--)
-            {
-                if (IsLocalExtremum(series, index, findMax))
-                {
-                    return index;
-                }
-            }
-            return 0;
-        }
-
-        private bool IsLocalExtremum(DataSeries series, int index, bool findMax)
-        {
-            int end = Math.Min(index + TrendLinesPeriods, series.Count - 1);
-            int start = Math.Max(index - TrendLinesPeriods, 0);
-
-            double value = series[index];
-
-            for (int i = start; i < end; i++)
-            {
-                if (findMax && value < series[i])
-                    return false;
-
-                if (!findMax && value > series[i])
-                    return false;
-            }
-            return true;
         }
     }
 }

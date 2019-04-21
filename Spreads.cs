@@ -7,7 +7,7 @@ namespace cAlgo.Indicators
     [Indicator(IsOverlay = true, TimeZone = TimeZones.ChinaStandardTime, AccessRights = AccessRights.FullAccess)]
     public class Spreads : Indicator
     {
-        [Parameter("Vị trí đặt thông tin", DefaultValue = 1, MinValue = 0, MaxValue = 4)]
+        [Parameter("Vị trí đặt thông tin", DefaultValue = 2, MinValue = 0, MaxValue = 4)]
         public int corner { get; set; }
 
         public StaticPosition corner_position;
@@ -29,8 +29,8 @@ namespace cAlgo.Indicators
                     corner_position = StaticPosition.BottomRight;
                     break;
             }
-            ChartObjects.DrawText("SymbolSpread", "Spread: " + Math.Round(Symbol.Spread / Symbol.PipSize, 5) + " pips", corner_position, Colors.White);
 
+            ChartObjects.DrawText("SymbolSpread", "Spread: " + Math.Round(Symbol.Spread / Symbol.PipSize, 5) + " pips", corner_position, Colors.Goldenrod);
             return;
         }
     }

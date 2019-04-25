@@ -87,7 +87,10 @@ namespace cAlgo.Indicators
 
             foreach (var position in History)
             {
-                gain += position.NetProfit;
+                if (position.ClosingTime.Month >= 4 && position.ClosingTime.Year == 2019)
+                {
+                    gain += position.NetProfit;
+                }
                 if (position.ClosingTime.DayOfYear == Time.DayOfYear)
                 {
                     gainToday += position.NetProfit;

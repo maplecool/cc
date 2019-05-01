@@ -11,7 +11,10 @@ namespace cAlgo.Robots
         {
             foreach (var position in Positions)
             {
-                ReversePositionAsync(position);
+                if (position.SymbolCode == Symbol.Code)
+                {
+                    ReversePositionAsync(position);
+                }
             }
             Stop();
         }

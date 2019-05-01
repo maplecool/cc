@@ -8,14 +8,19 @@ using cAlgo.Indicators;
 namespace cAlgo
 {
     [Robot(TimeZone = TimeZones.UTC, AccessRights = AccessRights.None)]
-    public class TakeStopSyncer : Robot
+    public class StopSyncer : Robot
     {
+        [Parameter("Điều chỉnh theo giá", DefaultValue = false)]
+        public bool modifyByPrice { get; set; }
 
-        [Parameter("Phần trăm chịu lỗ tối đa", DefaultValue = 5)]
-        public double MaxDrawDown { get; set; }
+        [Parameter("Giá cắt lỗ", DefaultValue = 0)]
+        public double SL { get; set; }
+
+        [Parameter("Giá chốt lời", DefaultValue = 0)]
+        public double TP { get; set; }
 
         [Parameter("Số pips tối đa chịu lỗ", DefaultValue = 25)]
-        public double MaxDrawDownInPips { get; set; }
+        public double stoplosspips { get; set; }
 
         [Parameter("Số pips chốt lời", DefaultValue = 35)]
         public double takeprofitpips { get; set; }
@@ -39,26 +44,40 @@ namespace cAlgo
 
         public void Modify()
         {
-            double costPerPip = (double)((int)(Symbol.PipValue * 10000000)) / 100;
-            double MaxPositionSize = (Account.Balance * MaxDrawDown / 100) / (MaxDrawDownInPips * costPerPip);
-            Print("Số lot tối đa có thể chơi: " + Math.Round(MaxPositionSize, 2) + " lot với Phần trăm chịu lỗ tối đa: " + MaxDrawDown + "% và Số pips tối đa chịu lỗ: " + MaxDrawDownInPips + " pips");
-
             foreach (var position in Positions)
             {
-                if (position.SymbolCode == Symbol.Code)
+                if (modifyByPrice == false)
                 {
-                    if (position.TradeType == TradeType.Buy)
+                    if (position.SymbolCode == Symbol.Code)
                     {
-                        ModifyPositionAsync(position, position.EntryPrice - MaxDrawDownInPips * Symbol.PipSize, position.EntryPrice + takeprofitpips * Symbol.PipSize, trailingStop);
-
+                        if (position.TradeType == TradeType.Buy)
+                        {
+                            ModifyPositionAsync(position, position.EntryPrice - stoplosspips * Symbol.PipSize, position.EntryPrice + takeprofitpips * Symbol.PipSize, trailingStop);
+                        }
+                        else
+                        {
+                            ModifyPositionAsync(position, position.EntryPrice + stoplosspips * Symbol.PipSize, position.EntryPrice - takeprofitpips * Symbol.PipSize, trailingStop);
+                        }
                     }
-                    else
+                }
+                else
+                {
+                    if (position.SymbolCode == Symbol.Code)
                     {
-                        ModifyPositionAsync(position, position.EntryPrice + MaxDrawDownInPips * Symbol.PipSize, position.EntryPrice - takeprofitpips * Symbol.PipSize, trailingStop);
-
+                        if (SL < 0)
+                        {
+                            SL = 0;
+                        }
+                        if (TP < 0)
+                        {
+                            TP = 0;
+                        }
+                        ModifyPositionAsync(position, SL, TP, trailingStop);
                     }
                 }
             }
+
+            Stop();
         }
 
     }

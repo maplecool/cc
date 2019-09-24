@@ -261,7 +261,7 @@ namespace cAlgo.Indicators
             }
             else if (Percentage < 0)
             {
-                ChartObjects.DrawText("Index Positions", "\n\n\n\n\n\n" + Symbol.Code + " " + Math.Round(Percentage * 100, 4) + "% | " + netProfit + "$ | " + Math.Round((double)Account.MarginLevel, 2) + "% | " + Math.Round(lots, 2) + " lots | " + type, corner_position, Colors.Orange);
+                ChartObjects.DrawText("Index Positions", "\n\n\n\n\n\n" + Symbol.Code + " " + Math.Round(Percentage * 100, 4) + "% | " + netProfit + "$ | " + Math.Round((double)Account.MarginLevel, 2) + "% | " + Math.Round(lots, 2) + " lots | " + type, corner_position, Colors.Red);
             }
         }
 
